@@ -12,8 +12,18 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { randomBytes } from 'crypto';
 
+// AUTH_SECRET signs every session token. In production it MUST be set to a real
+// random value — otherwise sessions could be forged with the known dev fallback.
+// We refuse to start in production without it, rather than run silently insecure.
+const RAW_SECRET = process.env.AUTH_SECRET;
+if (!RAW_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error(
+    'AUTH_SECRET is not set. Set it in your Vercel project environment variables ' +
+    '(generate one with: openssl rand -hex 32). Refusing to run insecurely.'
+  );
+}
 const SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || 'dev-only-insecure-secret-change-me'
+  RAW_SECRET || 'dev-only-insecure-secret-change-me'
 );
 const COOKIE = 'ce_session';
 const DAY = 60 * 60 * 24;
