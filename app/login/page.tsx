@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -10,6 +10,7 @@ function LoginInner() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  const pwRef = useRef<HTMLInputElement>(null);
 
   // Surface verification outcomes redirected from /api/auth/verify.
   useEffect(() => {
@@ -53,9 +54,9 @@ function LoginInner() {
         <label htmlFor="em">Email</label>
         <input id="em" type="email" autoComplete="username" placeholder="you@example.com"
           value={email} onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && document.getElementById('pw')?.focus()} />
+          onKeyDown={(e) => e.key === 'Enter' && pwRef.current?.focus()} />
         <label htmlFor="pw">Password</label>
-        <input id="pw" type="password" autoComplete="current-password" placeholder="••••••••"
+        <input id="pw" ref={pwRef} type="password" autoComplete="current-password" placeholder="••••••••"
           value={password} onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()} />
         <button className="primary" onClick={submit} disabled={busy}>
