@@ -2,6 +2,7 @@
   "name": "comment-exporter-site",
   "version": "1.0.0",
   "private": true,
+  "author": "Alvin Rey Baydal (grim-reaper-bit)",
   "description": "Private showcase site for the Comment Exporter extension. Public registration with email verification.",
   "scripts": {
     "dev": "next dev",

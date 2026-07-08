@@ -173,7 +173,7 @@ export default function Showcase() {
 
       <footer>
         <div className="wrap">
-          <span>Comment Exporter · v3.15.0 · private</span>
+          <span>Comment Exporter · v3.15.0 · built by Baydz</span>
           <span>registered access · not indexed</span>
         </div>
       </footer>
