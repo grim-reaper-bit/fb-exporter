@@ -137,3 +137,28 @@ h2{font-size:clamp(24px,3.4vw,32px);font-weight:750;letter-spacing:-.02em;margin
 footer{padding:40px 0 60px}
 footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;
   color:var(--slate-2);font-size:12.5px;font-family:var(--mono)}
+
+/* ---------- Reddit exporter page ---------- */
+.rwrap{max-width:720px;margin:0 auto;padding:48px 24px 80px}
+.rtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+.rback{color:var(--slate);font-size:13px;text-decoration:none;font-family:var(--mono)}
+.rback:hover{color:var(--amber)}
+.rwrap h1{font-size:26px;margin:0 0 10px;letter-spacing:-.01em}
+.rsub{color:var(--slate);font-size:14px;margin:0 0 28px;max-width:600px}
+.rcard{background:var(--ink-3);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:20px}
+.rcard label{margin-bottom:6px}
+.rresult{background:var(--ink-2)}
+.rmeta{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.rmrow{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  padding-bottom:10px;border-bottom:1px solid var(--line);font-size:14px}
+.rmrow:last-child{border-bottom:0;padding-bottom:0}
+.rmrow span{color:var(--slate);font-family:var(--mono);font-size:12px;letter-spacing:.04em}
+.rmrow b{color:var(--paper);text-align:right;font-weight:600}
+.msg.warn{color:var(--amber);margin:8px 0 16px;line-height:1.5}
+.rdl{display:flex;gap:12px;margin-top:8px}
+button.secondary{flex:1;background:transparent;color:var(--amber);border:1px solid var(--amber);
+  border-radius:9px;padding:11px;font-weight:600;font-size:13px;cursor:pointer;font-family:var(--sans)}
+button.secondary:hover{background:var(--amber-soft)}
+.rnote{margin-top:24px;color:var(--slate-2);font-size:12px;line-height:1.6}
+.rnote code{font-family:var(--mono);color:var(--slate);background:var(--ink-3);
+  padding:1px 5px;border-radius:4px;font-size:11px}

@@ -21,8 +21,9 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// Protect only the showcase root. Everything else (login, register, verify,
-// api, static assets) is public.
+// Protect the showcase root and the Reddit exporter page. Other routes (login,
+// register, verify, api, static assets) handle their own access: the api/reddit
+// route checks the session internally, and auth pages are meant to be public.
 export const config = {
-  matcher: ['/'],
+  matcher: ['/', '/reddit'],
 };

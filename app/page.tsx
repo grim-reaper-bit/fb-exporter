@@ -44,6 +44,7 @@ export default function Showcase() {
             <a href="#output">Output</a>
             <a href="#shots">Screenshots</a>
             <a href="#install">Install</a>
+            <a href="/reddit">Reddit tool</a>
           </nav>
           <LogoutButton />
         </div>
