@@ -12,8 +12,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { createSession, sessionCookie } from '@/lib/auth';
 import { verifyPassword } from '@/lib/password';
+import { rateLimit, clientIp } from '@/lib/ratelimit';
 
 export async function POST(req: NextRequest) {
+  // Throttle brute-force: 10 attempts per minute per IP.
+  const rl = rateLimit(`login:${clientIp(req)}`, 10, 60);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: `Too many attempts. Wait ${rl.retryAfter}s and try again.` },
+      { status: 429 }
+    );
+  }
+
   let body: { email?: string; password?: string };
   try { body = await req.json(); } catch { return bad('Invalid request.'); }
 

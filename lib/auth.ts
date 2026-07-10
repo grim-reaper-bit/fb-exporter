@@ -10,7 +10,6 @@
  * stays importable from Edge middleware.
  */
 import { SignJWT, jwtVerify } from 'jose';
-import { randomBytes } from 'crypto';
 
 // AUTH_SECRET signs every session token. In production it MUST be set to a real
 // random value — otherwise sessions could be forged with the known dev fallback.
@@ -28,17 +27,17 @@ const SECRET = new TextEncoder().encode(
 const COOKIE = 'ce_session';
 const DAY = 60 * 60 * 24;
 
-/** Random URL-safe token for email verification links. */
-export function makeToken(): string {
-  return randomBytes(32).toString('hex');
-}
+// Idle timeout: a session is valid for this long since the last activity.
+// Middleware re-issues a fresh token on each request (sliding window), so an
+// active user stays logged in, but an idle one is logged out after this gap.
+export const IDLE_TIMEOUT_SEC = 2 * 60 * 60; // 2 hours
 
-/** Create a signed session JWT (7-day expiry) for a verified user. */
+/** Create a signed session JWT for a verified user (idle-timeout expiry). */
 export async function createSession(userId: number, email: string): Promise<string> {
   return new SignJWT({ uid: userId, email })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime(`${IDLE_TIMEOUT_SEC}s`)
     .sign(SECRET);
 }
 
@@ -54,7 +53,7 @@ export async function readSession(token: string | undefined) {
 }
 
 /** Cookie options for the session (httpOnly, secure, lax). */
-export function sessionCookie(value: string, maxAgeSec = 7 * DAY) {
+export function sessionCookie(value: string, maxAgeSec = IDLE_TIMEOUT_SEC) {
   return {
     name: COOKIE,
     value,

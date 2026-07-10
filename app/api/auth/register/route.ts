@@ -17,10 +17,20 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { hashPassword } from '@/lib/password';
+import { rateLimit, clientIp } from '@/lib/ratelimit';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
+  // Throttle invite-code guessing: 5 registrations attempts per minute per IP.
+  const rl = rateLimit(`register:${clientIp(req)}`, 5, 60);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: `Too many attempts. Wait ${rl.retryAfter}s and try again.` },
+      { status: 429 }
+    );
+  }
+
   let body: { email?: string; password?: string; invite?: string };
   try { body = await req.json(); } catch { return bad('Invalid request.'); }
 
