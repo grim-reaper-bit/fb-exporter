@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import LoginBackground from '../LoginBackground';
 
 function LoginInner() {
   const router = useRouter();
@@ -73,8 +74,11 @@ function LoginInner() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="authwrap"><div className="authbox"><p className="sub">Loading…</p></div></div>}>
-      <LoginInner />
-    </Suspense>
+    <>
+      <LoginBackground />
+      <Suspense fallback={<div className="authwrap"><div className="authbox"><p className="sub">Loading…</p></div></div>}>
+        <LoginInner />
+      </Suspense>
+    </>
   );
 }
