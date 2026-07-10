@@ -1,12 +1,12 @@
 'use client';
 /**
- * app/reddit/page.tsx — Reddit thread comment exporter.
+ * app/youtube/page.tsx — YouTube video comment exporter.
  *
- * A logged-in user pastes a public Reddit thread URL; the server fetches the
- * thread via Reddit's `.json` endpoint, flattens the comment tree, and returns
- * rows matching the Facebook tool's schema. The user downloads CSV or JSON.
+ * A logged-in user pastes a YouTube video URL; the server pulls all comments and
+ * replies via the official YouTube Data API v3 and returns rows matching the
+ * Facebook tool's schema. The user downloads CSV or JSON.
  *
- * Protected by middleware (matcher includes /reddit) AND by the API route's own
+ * Protected by middleware (matcher includes /youtube) AND the API route's own
  * session check.
  */
 import { useState, useRef } from 'react';
@@ -19,9 +19,8 @@ interface Row {
   text: string; createdTime: string; likes: number; replyCount: number;
 }
 interface Meta {
-  post_title: string; post_author: string; post_url: string;
-  captured: number; declared_comments: number | null; complete: boolean | null;
-  exported_at: string;
+  video_id: string; post_author: string; post_url: string;
+  captured: number; exported_at: string; partial: boolean; note?: string;
 }
 
 const COLUMNS: (keyof Row)[] = [
@@ -35,24 +34,20 @@ function toCSV(rows: Row[]): string {
     const s = String(v == null ? '' : v);
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   };
-  const head = COLUMNS.join(',');
-  const body = rows.map((r) => COLUMNS.map((c) => esc(r[c])).join(',')).join('\r\n');
-  return '\uFEFF' + head + '\r\n' + body;
+  return '\uFEFF' + COLUMNS.join(',') + '\r\n' +
+    rows.map((r) => COLUMNS.map((c) => esc(r[c])).join(',')).join('\r\n');
 }
 
 function download(name: string, content: string, type: string) {
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
-export default function RedditPage() {
+export default function YouTubePage() {
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
@@ -61,12 +56,9 @@ export default function RedditPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function run() {
-    setBusy(true);
-    setMsg(null);
-    setRows(null);
-    setMeta(null);
+    setBusy(true); setMsg(null); setRows(null); setMeta(null);
     try {
-      const res = await fetch('/api/reddit/export', {
+      const res = await fetch('/api/youtube/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -91,24 +83,24 @@ export default function RedditPage() {
   return (
     <div className="rwrap">
       <header className="rtop">
-        <div className="badge"><span className="dot" />Reddit exporter</div>
+        <div className="badge"><span className="dot" />YouTube exporter</div>
         <Link href="/" className="rback">← back to overview</Link>
       </header>
 
-      <h1>Export a Reddit thread</h1>
+      <h1>Export YouTube comments</h1>
       <p className="rsub">
-        Paste a public Reddit thread URL. Comments are fetched through Reddit&apos;s
-        own public data endpoint and returned in the same schema as the Facebook
+        Paste a YouTube video URL. Comments and replies are pulled through the
+        official YouTube Data API and returned in the same schema as the Facebook
         exporter — download as CSV or JSON.
       </p>
 
       <div className="rcard">
-        <label htmlFor="rurl">Thread URL</label>
+        <label htmlFor="yurl">Video URL</label>
         <input
-          id="rurl"
+          id="yurl"
           ref={inputRef}
           type="url"
-          placeholder="https://www.reddit.com/r/…/comments/…"
+          placeholder="https://www.youtube.com/watch?v=…"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !busy && url && run()}
@@ -119,38 +111,28 @@ export default function RedditPage() {
 
         {msg && <p className={`msg ${msg.ok ? 'ok' : 'err'}`}>{msg.ok ? '✓ ' : '× '}{msg.t}</p>}
         <p className="rtip">
-          Tip: open the thread first, then copy the URL from the address bar (it
-          contains <code>/comments/</code>). Reddit share links (<code>/s/…</code>) aren&apos;t supported.
+          Works with <code>watch?v=</code>, <code>youtu.be</code>, and <code>/shorts/</code> links.
+          Pulls every comment plus full reply threads.
         </p>
       </div>
 
       {rows && meta && (
         <div className="rcard rresult">
           <div className="rmeta">
-            <div className="rmrow"><span>Thread</span><b>{meta.post_title || '(untitled)'}</b></div>
-            <div className="rmrow"><span>Posted by</span><b>u/{meta.post_author}</b></div>
+            <div className="rmrow"><span>Channel</span><b>{meta.post_author || '(unknown)'}</b></div>
+            <div className="rmrow"><span>Video</span><b>{meta.video_id}</b></div>
             <div className="rmrow"><span>Comments captured</span><b>{meta.captured}</b></div>
-            {meta.declared_comments != null && (
-              <div className="rmrow">
-                <span>Reddit reports</span>
-                <b>{meta.declared_comments}</b>
-              </div>
-            )}
           </div>
 
-          {meta.complete === false && (
-            <p className="msg warn">
-              ⚠ Reddit reports more comments than were returned in one request.
-              Some deeply nested or collapsed replies may be behind &quot;load more&quot;
-              stubs. What you have is complete for the branches Reddit returned.
-            </p>
+          {meta.partial && (
+            <p className="msg warn">⚠ {meta.note || 'Some replies could not be fetched. The data below is what was retrieved.'}</p>
           )}
 
           <div className="rdl">
-            <button className="secondary" onClick={() => download(`reddit-comments-${stamp()}.csv`, toCSV(rows), 'text/csv')}>
+            <button className="secondary" onClick={() => download(`youtube-comments-${stamp()}.csv`, toCSV(rows), 'text/csv')}>
               Download CSV
             </button>
-            <button className="secondary" onClick={() => download(`reddit-comments-${stamp()}.json`, JSON.stringify(rows, null, 2), 'application/json')}>
+            <button className="secondary" onClick={() => download(`youtube-comments-${stamp()}.json`, JSON.stringify(rows, null, 2), 'application/json')}>
               Download JSON
             </button>
           </div>
@@ -158,9 +140,9 @@ export default function RedditPage() {
       )}
 
       <p className="rnote">
-        Reads public comments only, via Reddit&apos;s per-URL <code>.json</code> endpoint —
-        no login to Reddit, no scraping of private data. Heavy use is rate-limited
-        by Reddit; if you see a rate-limit notice, wait a minute and retry.
+        Uses the official YouTube Data API v3 — legitimate, ToS-compliant, no
+        scraping. The daily API quota is generous but finite; if you see a quota
+        notice, it resets at midnight Pacific time.
       </p>
     </div>
   );

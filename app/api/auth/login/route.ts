@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const rows = await sql`
-      SELECT id, email, password_hash, verified FROM users WHERE email = ${email}
+      SELECT id, email, password_hash, status FROM users WHERE email = ${email}
     `;
     // Generic failure for missing user OR bad password (no enumeration).
     if (rows.length === 0) return bad('Incorrect email or password.');
@@ -32,9 +32,16 @@ export async function POST(req: NextRequest) {
     const good = await verifyPassword(password, u.password_hash);
     if (!good) return bad('Incorrect email or password.');
 
-    if (!u.verified) {
+    // Approval gate: only 'approved' accounts may sign in.
+    if (u.status === 'pending') {
       return NextResponse.json(
-        { error: 'Please verify your email first. Check your inbox for the link.' },
+        { error: 'Your account is awaiting approval by the site owner. Try again once approved.' },
+        { status: 403 }
+      );
+    }
+    if (u.status === 'rejected') {
+      return NextResponse.json(
+        { error: 'This account was not approved for access.' },
         { status: 403 }
       );
     }

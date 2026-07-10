@@ -44,6 +44,13 @@ export interface RedditRow {
 // Reddit thread URLs look like:
 //   https://www.reddit.com/r/<sub>/comments/<id>/<slug>/
 // We accept full URLs (with or without trailing slash, query, or www/old/new).
+// Validate a full Reddit thread URL (with /comments/) and turn it into its
+// .json form. Returns null if it isn't a Reddit comments permalink.
+//
+// Note: Reddit share links (/r/<sub>/s/<code>) are intentionally NOT accepted.
+// They HTTP-redirect to the real thread only for browsers; Reddit returns 403
+// to server-side clients trying to resolve them. So we ask the user to paste
+// the full /comments/ URL, which the browser shows once the thread is open.
 function normalizeThreadUrl(input: string): string | null {
   let raw = input.trim();
   if (!raw) return null;
@@ -132,23 +139,26 @@ export async function POST(req: NextRequest) {
   const jsonUrl = normalizeThreadUrl(body.url || '');
   if (!jsonUrl) {
     return NextResponse.json(
-      { error: 'Please paste a valid Reddit thread URL (e.g. https://www.reddit.com/r/…/comments/…).' },
+      { error: 'Paste the full thread URL containing /comments/. Reddit share links (/s/…) don\'t work — open the thread first, then copy the URL from the address bar.' },
       { status: 400 }
     );
   }
 
   // Fetch the thread. `raw_json=1` keeps Reddit from HTML-escaping the text.
-  // `limit` and `depth` widen how much of the tree Reddit returns in one call.
+  // Reddit rejects requests with unfamiliar/bot User-Agents (403), so we send a
+  // real browser User-Agent — the same kind of request the browser makes when
+  // you open the .json URL directly, which Reddit serves without complaint.
   const fetchUrl = `${jsonUrl}?raw_json=1&limit=500`;
   let res: Response;
   try {
     res = await fetch(fetchUrl, {
       headers: {
-        // A descriptive UA is what Reddit asks unauthenticated clients to send.
-        'User-Agent': 'comment-exporter/1.0 (personal research tool)',
-        'Accept': 'application/json',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+          '(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
       },
-      // Don't hang forever on a slow response.
       signal: AbortSignal.timeout(20000),
       cache: 'no-store',
     });
@@ -161,13 +171,19 @@ export async function POST(req: NextRequest) {
 
   if (res.status === 429) {
     return NextResponse.json(
-      { error: 'Reddit rate-limited this request. Wait a minute and try again.' },
+      { error: 'Reddit rate-limited this request. Wait a few minutes and try again.' },
       { status: 429 }
     );
   }
-  if (res.status === 403 || res.status === 404) {
+  if (res.status === 403) {
     return NextResponse.json(
-      { error: 'That thread is private, removed, or not found.' },
+      { error: 'Reddit blocked this request (403). This usually means Reddit is temporarily rate-limiting your connection after repeated requests. Wait 15–30 minutes and try again, ideally from Chrome.' },
+      { status: 403 }
+    );
+  }
+  if (res.status === 404) {
+    return NextResponse.json(
+      { error: 'Thread not found (404). Double-check the URL, or the thread may have been removed.' },
       { status: 404 }
     );
   }

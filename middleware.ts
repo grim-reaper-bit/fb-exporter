@@ -25,5 +25,5 @@ export async function middleware(req: NextRequest) {
 // register, verify, api, static assets) handle their own access: the api/reddit
 // route checks the session internally, and auth pages are meant to be public.
 export const config = {
-  matcher: ['/', '/reddit'],
+  matcher: ['/', '/reddit', '/youtube', '/admin'],
 };

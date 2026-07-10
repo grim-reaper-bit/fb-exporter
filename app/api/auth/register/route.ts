@@ -1,60 +1,77 @@
 export const runtime = 'nodejs';
 /**
  * POST /api/auth/register
- * Body: { email, password }
+ * Body: { email, password, invite }
  *
- * Creates an unverified account and emails a verification link. Returns 200 even
- * if the email already exists WITHOUT revealing that (prevents account
- * enumeration) — but still re-sends verification if that account is unverified.
+ * Invite-code registration with admin approval (no email verification).
+ *
+ * Flow:
+ *   - The invite code must match INVITE_CODE (the access gate).
+ *   - The FIRST account ever registered becomes the super admin, auto-approved.
+ *   - Every later account is created with status 'pending' and CANNOT log in
+ *     until the admin approves it (see the login route + /admin page).
+ *
+ * Avoids account enumeration: if the email already exists, returns the same
+ * generic success response rather than revealing it.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { makeToken } from '@/lib/auth';
 import { hashPassword } from '@/lib/password';
-import { sendVerifyEmail } from '@/lib/email';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
-  let body: { email?: string; password?: string };
+  let body: { email?: string; password?: string; invite?: string };
   try { body = await req.json(); } catch { return bad('Invalid request.'); }
 
   const email = (body.email || '').trim().toLowerCase();
   const password = body.password || '';
+  const invite = (body.invite || '').trim();
+
+  const expected = process.env.INVITE_CODE;
+  if (!expected) {
+    console.error('[register] INVITE_CODE is not set on the server');
+    return NextResponse.json({ error: 'Registration is not configured. Contact the site owner.' }, { status: 500 });
+  }
 
   if (!EMAIL_RE.test(email)) return bad('Enter a valid email address.');
   if (password.length < 8) return bad('Password must be at least 8 characters.');
-
-  const token = makeToken();
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  if (invite !== expected) return bad('Invalid invite code. Ask the site owner for the correct code.');
 
   try {
-    const existing = await sql`SELECT id, verified FROM users WHERE email = ${email}`;
-
+    const existing = await sql`SELECT id FROM users WHERE email = ${email}`;
     if (existing.length > 0) {
-      const u = existing[0];
-      if (!u.verified) {
-        // Re-issue verification for an unverified account.
-        await sql`UPDATE users SET verify_token = ${token}, verify_expires = ${expires} WHERE id = ${u.id}`;
-        await sendVerifyEmail(email, token);
-      }
-      // Same response whether or not it existed — no enumeration.
-      return ok();
+      return ok(false); // no enumeration
     }
 
+    // Is this the very first account? If so, it's the super admin.
+    const countRows = await sql`SELECT COUNT(*)::int AS n FROM users`;
+    const isFirst = (countRows[0]?.n ?? 0) === 0;
+
     const hash = await hashPassword(password);
+    const status = isFirst ? 'approved' : 'pending';
+    const isAdmin = isFirst;
+
     await sql`
-      INSERT INTO users (email, password_hash, verified, verify_token, verify_expires)
-      VALUES (${email}, ${hash}, false, ${token}, ${expires})
+      INSERT INTO users (email, password_hash, verified, status, is_admin)
+      VALUES (${email}, ${hash}, true, ${status}, ${isAdmin})
     `;
-    await sendVerifyEmail(email, token);
-    return ok();
+
+    return ok(isFirst);
   } catch (e) {
     console.error('[register] error', e);
     return NextResponse.json({ error: 'Something went wrong. Try again.' }, { status: 500 });
   }
 }
 
-const ok = () =>
-  NextResponse.json({ ok: true, message: 'Check your email for a verification link.' });
+// isAdmin=true → the first (admin) account; can sign in right away.
+// isAdmin=false → pending; must wait for approval.
+const ok = (isAdmin: boolean) =>
+  NextResponse.json({
+    ok: true,
+    admin: isAdmin,
+    message: isAdmin
+      ? 'Admin account created. You can sign in now.'
+      : 'Account created. It needs approval before you can sign in — the site owner will review it.',
+  });
 const bad = (error: string) => NextResponse.json({ error }, { status: 400 });

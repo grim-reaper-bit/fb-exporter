@@ -6,6 +6,11 @@
  * output schema, screenshots, and install guide.
  */
 import LogoutButton from './LogoutButton';
+import ShotImage from './ShotImage';
+import { requireAdmin } from '@/lib/admin';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 const features = [
   { k: 'Top-level', h: 'Full thread, no ceiling', p: 'Replays the comment query with advancing cursors to reach the complete count — past the point where a scrolling page drops older comments.' },
@@ -32,7 +37,8 @@ const steps = [
   { h: 'Open a post and export', p: <>On a Facebook post, click the extension → <b>Open exporter panel</b>. Set options, then <b>Export Comments</b>. Files download locally.</> },
 ];
 
-export default function Showcase() {
+export default async function Showcase() {
+  const admin = await requireAdmin();
   return (
     <>
       <header className="bar">
@@ -45,6 +51,8 @@ export default function Showcase() {
             <a href="#shots">Screenshots</a>
             <a href="#install">Install</a>
             <a href="/reddit">Reddit tool</a>
+            <a href="/youtube">YouTube tool</a>
+            {admin && <a href="/admin">Admin</a>}
           </nav>
           <LogoutButton />
         </div>
@@ -138,12 +146,12 @@ export default function Showcase() {
         <div className="wrap">
           <div className="seclabel">Screens</div>
           <h2>Screenshots</h2>
-          <p className="lead">Replace each placeholder with your own capture — drop images named below into <code>/public</code> and swap the placeholder for an <code>&lt;img&gt;</code>.</p>
+          <p className="lead">Real captures from the tool in use. Drop images named <code>panel.png</code>, <code>progress.png</code>, <code>summary.png</code>, and <code>csv.png</code> into <code>/public</code> to show them here.</p>
           <div className="shots">
             {shots.map((s) => (
               <div className="shot" key={s.c}>
                 <div className="cap">{s.c}</div>
-                <div className="ph">add image — {s.f}</div>
+                <ShotImage file={s.f} />
                 <div className="cap2">{s.cap}</div>
               </div>
             ))}
@@ -174,7 +182,7 @@ export default function Showcase() {
 
       <footer>
         <div className="wrap">
-          <span>Comment Exporter · v3.15.0 · built by Baydz</span>
+          <span>Comment Exporter · v3.15.0 · developed by Baydz</span>
           <span>registered access · not indexed</span>
         </div>
       </footer>
