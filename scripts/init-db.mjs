@@ -52,12 +52,14 @@ const statements = [
     id             SERIAL PRIMARY KEY,
     email          TEXT UNIQUE NOT NULL,
     password_hash  TEXT NOT NULL,
-    verified       BOOLEAN NOT NULL DEFAULT false,
-    verify_token   TEXT,
-    verify_expires TIMESTAMPTZ,
+    status         TEXT NOT NULL DEFAULT 'pending',
+    is_admin       BOOLEAN NOT NULL DEFAULT false,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_users_verify_token ON users (verify_token)`,
+  `CREATE INDEX IF NOT EXISTS idx_users_status ON users (status)`,
+  // At most one row may have is_admin = true — closes the race where two
+  // concurrent "first account" registrations could both become admin.
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_single_admin ON users (is_admin) WHERE is_admin = true`,
 ];
 
 try {

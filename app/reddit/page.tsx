@@ -11,6 +11,7 @@
  */
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { toCSV } from '@/lib/csv';
 
 interface Row {
   post_url: string; post_id: string; post_author: string; exported_at: string;
@@ -29,16 +30,6 @@ const COLUMNS: (keyof Row)[] = [
   'account_id', 'comment_id', 'parent_comment_id', 'depth', 'isReply',
   'author', 'profileUrl', 'text', 'createdTime', 'likes', 'replyCount',
 ];
-
-function toCSV(rows: Row[]): string {
-  const esc = (v: unknown) => {
-    const s = String(v == null ? '' : v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  };
-  const head = COLUMNS.join(',');
-  const body = rows.map((r) => COLUMNS.map((c) => esc(r[c])).join(',')).join('\r\n');
-  return '\uFEFF' + head + '\r\n' + body;
-}
 
 function download(name: string, content: string, type: string) {
   const blob = new Blob([content], { type });
@@ -147,7 +138,7 @@ export default function RedditPage() {
           )}
 
           <div className="rdl">
-            <button className="secondary" onClick={() => download(`reddit-comments-${stamp()}.csv`, toCSV(rows), 'text/csv')}>
+            <button className="secondary" onClick={() => download(`reddit-comments-${stamp()}.csv`, toCSV(rows, COLUMNS), 'text/csv')}>
               Download CSV
             </button>
             <button className="secondary" onClick={() => download(`reddit-comments-${stamp()}.json`, JSON.stringify(rows, null, 2), 'application/json')}>

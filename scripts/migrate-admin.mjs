@@ -45,9 +45,6 @@ async function main() {
   console.log('Adding is_admin column...');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false`);
 
-  console.log('Approving existing verified accounts...');
-  await run(`UPDATE users SET status = 'approved' WHERE verified = true AND status = 'pending'`);
-
   console.log('Checking for an admin...');
   const admins = await run(`SELECT COUNT(*)::int AS n FROM users WHERE is_admin = true`);
   const adminCount = Array.isArray(admins) ? admins[0]?.n : admins?.rows?.[0]?.n;
@@ -66,6 +63,9 @@ async function main() {
   }
 
   await run(`CREATE INDEX IF NOT EXISTS idx_users_status ON users (status)`);
+
+  console.log('Adding single-admin race-safety index...');
+  await run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_single_admin ON users (is_admin) WHERE is_admin = true`);
   console.log('');
   console.log('OK Migration complete.');
 }

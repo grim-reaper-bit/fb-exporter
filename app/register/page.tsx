@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import PasswordField from '../PasswordField';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -49,7 +50,7 @@ export default function RegisterPage() {
               value={email} onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && pwRef.current?.focus()} />
             <label htmlFor="pw">Password</label>
-            <input id="pw" ref={pwRef} type="password" autoComplete="new-password" placeholder="at least 8 characters"
+            <PasswordField id="pw" ref={pwRef} autoComplete="new-password" placeholder="at least 8 characters"
               value={password} onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && inviteRef.current?.focus()} />
             <label htmlFor="inv">Invite code</label>

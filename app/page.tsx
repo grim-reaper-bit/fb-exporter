@@ -5,7 +5,7 @@
  * /login). Presents what the Comment Exporter extension is: overview, features,
  * output schema, screenshots, and install guide.
  */
-import LogoutButton from './LogoutButton';
+import Header from './Header';
 import ShotImage from './ShotImage';
 import { requireAdmin } from '@/lib/admin';
 
@@ -41,22 +41,7 @@ export default async function Showcase() {
   const admin = await requireAdmin();
   return (
     <>
-      <header className="bar">
-        <div className="wrap">
-          <div className="brand"><span className="sig" />Comment Exporter</div>
-          <nav className="top">
-            <a href="#what">Overview</a>
-            <a href="#features">Features</a>
-            <a href="#output">Output</a>
-            <a href="#shots">Screenshots</a>
-            <a href="#install">Install</a>
-            <a href="/reddit">Reddit tool</a>
-            <a href="/youtube">YouTube tool</a>
-            {admin && <a href="/admin">Admin</a>}
-          </nav>
-          <LogoutButton />
-        </div>
-      </header>
+      <Header isAdmin={!!admin} />
 
       <div className="hero">
         <div className="wrap">

@@ -13,8 +13,15 @@ export const runtime = 'nodejs';
  *
  * Avoids account enumeration: if the email already exists, returns the same
  * generic success response rather than revealing it.
+ *
+ * Race safety: "am I the first account" is a read-then-write, so two
+ * concurrent registrations could both see an empty table. A partial unique
+ * index (idx_users_single_admin, see scripts/migrate-admin.mjs) allows at
+ * most one is_admin=true row; if our "first account" insert loses that race,
+ * Postgres rejects it and we fall back to inserting as a normal pending user.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { NeonDbError } from '@neondatabase/serverless';
 import { sql } from '@/lib/db';
 import { hashPassword } from '@/lib/password';
 import { rateLimit, clientIp } from '@/lib/ratelimit';
@@ -54,21 +61,35 @@ export async function POST(req: NextRequest) {
       return ok(false); // no enumeration
     }
 
-    // Is this the very first account? If so, it's the super admin.
+    // Is this the very first account? If so, try to become the super admin.
     const countRows = await sql`SELECT COUNT(*)::int AS n FROM users`;
     const isFirst = (countRows[0]?.n ?? 0) === 0;
-
     const hash = await hashPassword(password);
-    const status = isFirst ? 'approved' : 'pending';
-    const isAdmin = isFirst;
+
+    if (isFirst) {
+      try {
+        await sql`
+          INSERT INTO users (email, password_hash, status, is_admin)
+          VALUES (${email}, ${hash}, 'approved', true)
+        `;
+        return ok(true);
+      } catch (e) {
+        // Someone else's request won the race to be first-admin (enforced by
+        // idx_users_single_admin) — fall through and register as pending.
+        if (!(e instanceof NeonDbError && e.constraint === 'idx_users_single_admin')) throw e;
+      }
+    }
 
     await sql`
-      INSERT INTO users (email, password_hash, verified, status, is_admin)
-      VALUES (${email}, ${hash}, true, ${status}, ${isAdmin})
+      INSERT INTO users (email, password_hash, status, is_admin)
+      VALUES (${email}, ${hash}, 'pending', false)
     `;
-
-    return ok(isFirst);
+    return ok(false);
   } catch (e) {
+    // Concurrent duplicate-email registration racing past the pre-check above.
+    if (e instanceof NeonDbError && e.constraint === 'users_email_key') {
+      return ok(false); // no enumeration
+    }
     console.error('[register] error', e);
     return NextResponse.json({ error: 'Something went wrong. Try again.' }, { status: 500 });
   }

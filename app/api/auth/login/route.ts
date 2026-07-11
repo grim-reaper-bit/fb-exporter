@@ -3,8 +3,9 @@ export const runtime = 'nodejs';
  * POST /api/auth/login
  * Body: { email, password }
  *
- * Verifies credentials server-side. Refuses login for unverified accounts.
- * On success, sets a signed httpOnly session cookie. Uses a single generic
+ * Verifies credentials server-side. Refuses login for accounts that aren't
+ * yet approved by an admin (or were rejected). On success, sets a signed
+ * httpOnly session cookie. Uses a single generic
  * error for both "no such user" and "wrong password" to avoid leaking which
  * emails are registered.
  */

@@ -12,7 +12,23 @@ export const runtime = 'nodejs';
  * official Data API requires approved access (self-service registration closed
  * in late 2025). The per-URL `.json` endpoint remains open, needs no auth for
  * public content, and returns the same structured data Reddit's own clients use.
- * We send a descriptive User-Agent and fetch server-side to respect their guidance.
+ *
+ * Known limitation (confirmed by direct testing, not theoretical): Reddit's
+ * anti-bot layer can 403 this even with a correct, realistic User-Agent header.
+ * It isn't just checking the UA string — it fingerprints the actual TLS
+ * handshake (JA3/JA4: cipher order, extensions, etc.), which a server-side
+ * `fetch()` can never make byte-identical to a real Chrome browser's, no
+ * matter what headers are set. A client-side fetch from the browser doesn't
+ * work around it either — the same endpoint refuses cross-origin script
+ * access (CORS), confirmed by testing a real Chromium fetch from this site's
+ * own origin (`net::ERR_FAILED`, no CORS headers on the response). Opening
+ * the `.json` URL directly in a browser tab (top-level navigation, not
+ * subject to CORS) does work — that's the fastest way to tell "Reddit is
+ * currently blocking requests like ours" from "something else is wrong."
+ * A durable fix would mean fetching through a real headless browser
+ * server-side, which trades this route's current speed and simplicity for
+ * meaningfully heavier, slower, more fragile infrastructure — not worth it
+ * unless 403s become the common case rather than the occasional one.
  *
  * This route is protected: only logged-in users reach it (see middleware).
  */
@@ -145,9 +161,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Fetch the thread. `raw_json=1` keeps Reddit from HTML-escaping the text.
-  // Reddit rejects requests with unfamiliar/bot User-Agents (403), so we send a
-  // real browser User-Agent — the same kind of request the browser makes when
-  // you open the .json URL directly, which Reddit serves without complaint.
+  // The User-Agent below is necessary but not sufficient — see the module
+  // comment above for why this can still 403 regardless.
   const fetchUrl = `${jsonUrl}?raw_json=1&limit=500`;
   let res: Response;
   try {
@@ -177,7 +192,11 @@ export async function POST(req: NextRequest) {
   }
   if (res.status === 403) {
     return NextResponse.json(
-      { error: 'Reddit blocked this request (403). This usually means Reddit is temporarily rate-limiting your connection after repeated requests. Wait 15–30 minutes and try again, ideally from Chrome.' },
+      {
+        error: 'Reddit blocked this request (403) — its anti-bot layer occasionally rejects server-side requests even with a valid browser User-Agent. ' +
+          `To check if it's just Reddit being temperamental right now: paste ${fetchUrl} straight into your browser's address bar. ` +
+          'If that loads JSON fine, wait a few minutes and retry here. If it also fails in the browser, the thread or your connection is the issue, not this tool.',
+      },
       { status: 403 }
     );
   }

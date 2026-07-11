@@ -12,19 +12,22 @@
  *      sign in again.
  *
  * Neon runs over HTTP(S) fetch, so it works in the Edge runtime used here.
+ * Reuses the same lazily-cached client as lib/db.ts instead of opening a new
+ * one per request.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { neon } from '@neondatabase/serverless';
+import { sql } from '@/lib/db';
 import { readSession, createSession, sessionCookie, SESSION_COOKIE } from '@/lib/auth';
 
-async function currentStatus(uid: number): Promise<string | null> {
+type StatusLookup = { reachable: true; status: string | null } | { reachable: false };
+
+async function currentStatus(uid: number): Promise<StatusLookup> {
   try {
-    const sql = neon(process.env.DATABASE_URL as string);
     const rows = (await sql`SELECT status FROM users WHERE id = ${uid}`) as { status: string }[];
-    return rows[0]?.status ?? null;
-  } catch {
-    // If the DB check fails, fail safe: treat as not-approved (redirect to login).
-    return null;
+    return { reachable: true, status: rows[0]?.status ?? null };
+  } catch (e) {
+    console.error('[middleware] status lookup failed', e);
+    return { reachable: false };
   }
 }
 
@@ -39,8 +42,19 @@ export async function middleware(req: NextRequest) {
   const session = await readSession(token);
   if (!session) return toLogin(req);
 
-  const status = await currentStatus(session.uid);
-  if (status !== 'approved') return toLogin(req);
+  const lookup = await currentStatus(session.uid);
+
+  if (!lookup.reachable) {
+    // DB is unreachable (transient Neon blip, cold start, etc). Don't punish
+    // a valid, unexpired session for an infra hiccup that has nothing to do
+    // with whether the account is still approved — let this one request
+    // through on the existing token without refreshing it. The live-
+    // revocation check simply resumes on the next request once the DB
+    // answers again.
+    return NextResponse.next();
+  }
+
+  if (lookup.status !== 'approved') return toLogin(req);
 
   const res = NextResponse.next();
   const fresh = await createSession(session.uid, session.email);

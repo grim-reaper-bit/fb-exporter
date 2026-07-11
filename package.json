@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "author": "Alvin Rey Baydal (grim-reaper-bit)",
-  "description": "Private showcase site for the Comment Exporter extension. Public registration with email verification.",
+  "description": "Private showcase site for the Comment Exporter extension. Invite-code registration with admin approval.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,15 +17,12 @@
     "jose": "^5.9.6",
     "next": "^15.1.6",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "resend": "^4.0.1",
-    "ws": "^8.21.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
-    "@types/ws": "^8.18.1",
     "typescript": "^5.7.3"
   }
 }

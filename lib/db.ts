@@ -50,15 +50,14 @@ export const sql: NeonQueryFunction<false, false> = new Proxy((() => {}) as unkn
 
 /**
  * User row shape as stored. `password_hash` is a bcrypt hash — the plaintext
- * password is never stored or logged. `verified` gates login until the user
- * clicks the emailed verification link.
+ * password is never stored or logged. Access is gated by `status`
+ * (pending/approved/rejected), set via invite code + admin approval.
  */
 export interface UserRow {
   id: number;
   email: string;
   password_hash: string;
-  verified: boolean;
-  verify_token: string | null;
-  verify_expires: string | null;
+  status: string;
+  is_admin: boolean;
   created_at: string;
 }

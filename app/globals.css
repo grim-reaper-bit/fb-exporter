@@ -19,10 +19,6 @@ a{color:inherit;text-decoration:none}
 .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
 
 /* ---------- shared auth card ---------- */
-.authwrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
-  background:transparent}
-.authbox{width:100%;max-width:400px;background:var(--ink-3);border:1px solid var(--line);
-  border-radius:16px;padding:32px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
 .badge{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
   color:var(--amber);display:flex;align-items:center;gap:8px;margin-bottom:20px}
 .badge .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);
@@ -35,6 +31,14 @@ label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
 input{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;
   padding:11px 13px;color:var(--paper);font-size:14px;font-family:var(--sans);margin-bottom:16px;outline:none}
 input:focus{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-soft)}
+
+.pwfield{position:relative;margin-bottom:16px}
+.pwfield input{margin-bottom:0;padding-right:42px}
+.pwtoggle{position:absolute;top:0;right:0;height:100%;width:42px;display:flex;
+  align-items:center;justify-content:center;background:none;border:0;cursor:pointer;
+  color:var(--slate-2);padding:0}
+.pwtoggle:hover{color:var(--paper)}
+.pwtoggle:focus-visible{outline:2px solid var(--amber);outline-offset:-2px;border-radius:6px}
 button.primary{width:100%;background:var(--amber);color:var(--ink);border:0;border-radius:9px;
   padding:12px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--sans)}
 button.primary:hover{filter:brightness(1.08)}
@@ -51,19 +55,50 @@ button.primary:disabled{opacity:.6;cursor:default}
 /* ---------- showcase ---------- */
 header.bar{position:sticky;top:0;z-index:20;background:rgba(11,18,32,.82);
   backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
-header.bar .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
-.brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.01em}
+header.bar .wrap{position:relative;display:flex;align-items:center;justify-content:space-between;
+  height:60px;gap:16px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.01em;flex:none}
 .brand .sig{width:26px;height:26px;border-radius:7px;background:var(--amber);position:relative;flex:none}
 .brand .sig::before{content:"";position:absolute;inset:6px 6px auto 6px;height:2px;background:var(--ink);
   box-shadow:0 5px 0 var(--ink),0 10px 0 var(--ink)}
-nav.top{display:flex;gap:26px;font-size:13.5px}
-nav.top a{color:var(--slate);transition:color .15s}
+
+/* Nav + logout are grouped together on the right so the header reads as two
+   balanced halves (brand | nav) instead of three unevenly spaced pieces. */
+.navwrap{display:flex;align-items:center;gap:22px}
+nav.top{display:flex;align-items:center;gap:18px;font-size:13.5px;flex-wrap:wrap;row-gap:6px}
+nav.top a{color:var(--slate);transition:color .15s;white-space:nowrap}
 nav.top a:hover{color:var(--paper)}
 .logout{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--slate-2);background:none;border:1px solid var(--line);border-radius:7px;
-  padding:6px 12px;cursor:pointer}
+  padding:6px 12px;cursor:pointer;flex:none}
 .logout:hover{color:var(--paper);border-color:var(--slate)}
-@media(max-width:720px){nav.top{display:none}}
+
+/* Hamburger toggle — hidden on desktop, shown once nav no longer fits comfortably. */
+.navtoggle{display:none;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  width:36px;height:36px;flex:none;background:none;border:1px solid var(--line);border-radius:8px;
+  cursor:pointer}
+.navtoggle span{display:block;width:16px;height:2px;border-radius:2px;background:var(--paper);
+  transition:transform .2s ease,opacity .2s ease}
+.navtoggle[aria-expanded="true"] span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.navtoggle[aria-expanded="true"] span:nth-child(2){opacity:0}
+.navtoggle[aria-expanded="true"] span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+
+@media(max-width:900px){
+  .navtoggle{display:flex}
+  .navwrap{
+    position:absolute;top:100%;left:0;right:0;
+    flex-direction:column;align-items:stretch;gap:0;
+    background:var(--ink-2);border-bottom:1px solid var(--line);
+    box-shadow:0 16px 32px rgba(0,0,0,.35);
+    padding:6px 24px 18px;
+    max-height:0;opacity:0;overflow:hidden;pointer-events:none;
+    transition:max-height .25s ease,opacity .2s ease;
+  }
+  .navwrap.open{max-height:70vh;opacity:1;pointer-events:auto;overflow-y:auto}
+  nav.top{flex-direction:column;align-items:stretch;gap:0;font-size:14.5px}
+  nav.top a{padding:13px 2px;border-bottom:1px solid var(--line)}
+  .navwrap .logout{width:100%;margin-top:14px;padding:11px}
+}
 
 .hero{padding:74px 0 54px;border-bottom:1px solid var(--line);position:relative;overflow:hidden}
 .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;
@@ -81,7 +116,7 @@ nav.top a:hover{color:var(--paper)}
 .logstrip .lhead{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line);
   color:var(--slate);background:var(--ink-2)}
 .logstrip .lhead .d{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
-.logstrip .lbody{padding:12px 14px;min-height:118px}
+.logstrip .lbody{padding:12px 14px;min-height:118px;overflow-x:auto;white-space:pre-wrap}
 .logstrip .ln{display:block;color:var(--slate)}
 .logstrip .ln .t{color:var(--amber)}
 .logstrip .ln .ok{color:var(--green)}
@@ -182,23 +217,159 @@ button.secondary:hover{background:var(--amber-soft)}
 .badge-pending{background:rgba(245,179,1,.14);color:var(--amber)}
 .badge-approved{background:rgba(46,204,113,.14);color:#39d98a}
 .badge-rejected{background:rgba(231,76,60,.14);color:#f2726a}
-.uactions{display:flex;gap:8px;justify-content:flex-end}
+.uactions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .uself{font-family:var(--mono);font-size:11px;color:var(--slate-2)}
-.uapprove,.ureject{font-family:var(--sans);font-size:12px;font-weight:600;border-radius:7px;
+.uapprove,.ureject,.ureset,.udelete{font-family:var(--sans);font-size:12px;font-weight:600;border-radius:7px;
   padding:6px 12px;cursor:pointer;border:1px solid transparent}
 .uapprove{background:rgba(46,204,113,.14);color:#39d98a;border-color:rgba(46,204,113,.3)}
 .uapprove:hover:not(:disabled){background:rgba(46,204,113,.24)}
 .ureject{background:transparent;color:#f2726a;border-color:rgba(231,76,60,.3)}
 .ureject:hover:not(:disabled){background:rgba(231,76,60,.14)}
-.uapprove:disabled,.ureject:disabled{opacity:.45;cursor:default}
+.ureset{background:transparent;color:var(--slate);border-color:var(--line)}
+.ureset:hover:not(:disabled){color:var(--paper);border-color:var(--slate)}
+.udelete{background:rgba(231,76,60,.14);color:#f2726a;border-color:rgba(231,76,60,.3)}
+.udelete:hover:not(:disabled){background:#e74c3c;color:#fff;border-color:#e74c3c}
+.uapprove:disabled,.ureject:disabled,.ureset:disabled,.udelete:disabled{opacity:.45;cursor:default}
+
+/* ---------- Confirm dialog (replaces window.confirm) ---------- */
+@keyframes modalFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes modalCardIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+.modalbackdrop{position:fixed;inset:0;z-index:100;background:rgba(5,9,18,.72);
+  backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;
+  padding:24px;animation:modalFadeIn .15s ease}
+.modalcard{width:100%;max-width:400px;background:var(--ink-2);border:1px solid var(--line);
+  border-radius:14px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.5);
+  animation:modalCardIn .18s ease}
+.modalcard h3{font-size:17px;font-weight:700;letter-spacing:-.01em;color:var(--paper);margin-bottom:10px}
+.modalcard p{color:var(--slate);font-size:13.5px;line-height:1.55}
+.modalactions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+.modalcancel,.modalconfirm{font-family:var(--sans);font-size:13px;font-weight:600;
+  border-radius:8px;padding:9px 16px;cursor:pointer}
+.modalcancel{background:none;border:1px solid var(--line);color:var(--slate)}
+.modalcancel:hover{color:var(--paper);border-color:var(--slate)}
+.modalconfirm{background:var(--amber);border:1px solid var(--amber);color:var(--ink)}
+.modalconfirm:hover{filter:brightness(1.08)}
+.modalconfirm.danger{background:#e74c3c;border-color:#e74c3c;color:#fff}
+.modalconfirm.danger:hover{background:#d93f30;border-color:#d93f30}
+
+.resetreveal{background:var(--amber-soft);border:1px solid #f5b30144;border-radius:11px;
+  padding:14px 16px;margin-bottom:16px}
+.rrhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  font-size:13px;color:#f7d477}
+.rrhead b{color:var(--amber)}
+.rrclose{background:none;border:0;color:#f7d477;font-size:18px;line-height:1;cursor:pointer;
+  padding:0 2px;flex:none}
+.rrbody{display:flex;align-items:center;gap:10px;margin-top:10px}
+.rrbody code{font-family:var(--mono);font-size:15px;color:var(--paper);background:#080e1a;
+  border:1px solid var(--line);border-radius:7px;padding:8px 12px;letter-spacing:.03em;
+  user-select:all}
+.rrbody button.secondary{flex:none;padding:8px 14px}
+.rrnote{margin-top:10px;font-size:12px;color:#c9a35c;line-height:1.5}
+@media(max-width:480px){
+  .rrbody{flex-direction:column;align-items:stretch}
+  .rrbody code{text-align:center}
+}
 
 .shotimg{width:100%;aspect-ratio:16/10;object-fit:contain;object-position:center;
   display:block;background:var(--ink-2);padding:8px}
 
+
 /* ---------- Login WebGL background (Vanta NET) ---------- */
-.loginbg{position:fixed;inset:0;z-index:0;width:100vw;height:100vh;background:var(--ink)}
-/* Lift the auth box above the 3D canvas */
-.authwrap{position:relative;z-index:1}
-.authbox{position:relative;z-index:1;
-  background:rgba(22,34,60,0.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  box-shadow:0 20px 60px rgba(0,0,0,0.45)}
+.loginbg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--ink); /* CSS fallback if WebGL fails */
+}
+
+/* Lift auth box above the 3D canvas. No background — Vanta must show through. */
+.authwrap {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: transparent;
+}
+
+.authbox {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  background: rgba(22, 34, 60, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.5);
+}
+
+/* ---------- GitHub nav link (main page header) ---------- */
+.nav-gh {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--amber) !important;
+  font-weight: 600;
+  transition: opacity .15s;
+}
+.nav-gh:hover { opacity: .75; }
+
+/* ============================================================
+   RESPONSIVE FIXES
+   Tested breakpoints: 320px (iPhone SE), 375px, 430px (iPhone Pro Max),
+   768px (tablet), 1024px (small desktop)
+   ============================================================ */
+
+/* --- Login / Register / Auth pages (320px–480px) --- */
+@media(max-width:480px){
+  /* authbox: full bleed with tight padding on tiny phones */
+  .authbox{padding:24px 20px;border-radius:12px}
+  /* authwrap: reduce side padding so card doesn't clip */
+  .authwrap{padding:16px}
+}
+
+/* --- Logstrip: long log lines must scroll, not overflow the card --- */
+@media(max-width:720px){
+  .logstrip{font-size:11.5px}
+  .logstrip .lbody{min-height:80px;padding:10px 12px}
+}
+
+/* --- Admin urow: 3-column grid crushes on mobile — stack it --- */
+@media(max-width:600px){
+  .urow{grid-template-columns:1fr;gap:8px}
+  .uactions{justify-content:flex-start}
+}
+
+/* --- Reddit/YouTube rtop: space-between breaks on narrow screens --- */
+@media(max-width:480px){
+  .rtop{flex-direction:column;align-items:flex-start;gap:12px}
+  .rdl{flex-direction:column}
+  .rdl button{width:100%}
+  .rwrap h1{font-size:22px}
+  .rsub{font-size:13px}
+}
+
+/* --- Hero section: reduce padding on mobile --- */
+@media(max-width:720px){
+  .hero{padding:48px 0 36px}
+  .meta{gap:8px}
+  .chip{font-size:11px;padding:5px 11px}
+}
+
+/* --- Steps: narrow gap on tiny screens --- */
+@media(max-width:480px){
+  .step{gap:12px}
+  .step .n{width:28px;height:28px;font-size:11px}
+}
+
+/* --- Section padding: reduce on mobile --- */
+@media(max-width:720px){
+  section{padding:44px 0}
+}
